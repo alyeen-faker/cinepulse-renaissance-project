@@ -30,9 +30,9 @@ export const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand Section */}
           <div className="space-y-4">
-            <h3 className="text-primary font-bold text-2xl">CINEPULSE</h3>
+            <h3 className="text-primary font-bold text-2xl">NYORA</h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              La meilleure plateforme pour regarder vos films et séries préférés en streaming. 
+              Votre plateforme de streaming premium avec téléchargements légaux et recommandations personnalisées.
               Découvrez des univers infinis et des histoires captivantes.
             </p>
           </div>
@@ -114,7 +114,7 @@ export const Footer = () => {
         {/* Bottom Copyright */}
         <div className="border-t border-border mt-8 pt-8 text-center">
           <p className="text-muted-foreground text-sm">
-            © 2024 Cinepulse. Tous droits réservés. Développé avec ❤️ pour les cinéphiles.
+            © 2024 NYORA. Tous droits réservés. Développé avec ❤️ pour les cinéphiles.
           </p>
         </div>
       </div>

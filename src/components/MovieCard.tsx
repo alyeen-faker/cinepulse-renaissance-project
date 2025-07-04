@@ -1,4 +1,5 @@
 import { Play, Star } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 
@@ -24,11 +25,12 @@ export const MovieCard = ({
   size = "small"
 }: MovieCardProps) => {
   return (
-    <Card 
-      className={`group overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-2 bg-card border-border/50 ${
-        size === "large" ? "h-auto" : "h-fit"
-      }`}
-    >
+    <Link to="/movie/1" className="block">
+      <Card 
+        className={`group overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-2 bg-card border-border/50 ${
+          size === "large" ? "h-auto" : "h-fit"
+        }`}
+      >
       <div className="relative overflow-hidden">
         <img
           src={image}
@@ -97,5 +99,6 @@ export const MovieCard = ({
         )}
       </div>
     </Card>
+  </Link>
   );
 };

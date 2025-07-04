@@ -9,8 +9,8 @@ export const Navigation = () => {
 
   const navItems = [
     { label: "Accueil", href: "/" },
-    { label: "Films", href: "/films" },
-    { label: "Séries", href: "/series" },
+    { label: "Parcourir", href: "/browse" },
+    { label: "Mon Profil", href: "/profile" },
     { label: "Nouveautés", href: "/nouveautes" },
     { label: "Tendances", href: "/tendances" },
   ];
@@ -22,7 +22,7 @@ export const Navigation = () => {
           {/* Logo */}
           <div className="flex items-center space-x-8">
             <a href="/" className="text-primary font-bold text-2xl tracking-tight">
-              CINEPULSE
+              NYORA
             </a>
             
             {/* Desktop Navigation */}
