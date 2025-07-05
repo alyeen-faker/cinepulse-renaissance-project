@@ -1,222 +1,183 @@
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { Play, Download, Heart, Star, Plus, Share } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Navigation } from "@/components/Navigation";
-import { Footer } from "@/components/Footer";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { RatingSystem } from "@/components/RatingSystem";
 import { CommentSection } from "@/components/CommentSection";
+import { Footer } from "@/components/Footer";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Star, Calendar, Clock, Download, Plus, Play, Share2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
-// Mock data - à remplacer par des données réelles depuis Supabase
-const movieData = {
-  id: "1",
-  title: "Everything Everywhere All at Once",
-  originalTitle: "Everything Everywhere All at Once",
-  releaseDate: "2022-03-24",
-  duration: "139 min",
-  rating: 8.1,
-  userRating: 0,
-  synopsis: "Une blanchisseuse chinoise-américaine est entraînée dans une aventure folle où elle seule peut sauver l'univers en explorant d'autres univers où elle aurait pu mener des vies très différentes.",
-  genres: ["Science-fiction", "Action", "Comédie", "Drame"],
-  cast: ["Michelle Yeoh", "Stephanie Hsu", "Ke Huy Quan", "Jamie Lee Curtis"],
-  director: "Daniels",
-  country: "États-Unis",
-  language: "Anglais, Mandarin",
-  poster: "https://image.tmdb.org/t/p/w1920_and_h800_multi_faces/ss0Os3uWJfQAENILHZUdX8Tt1OC.jpg",
-  backdrop: "https://image.tmdb.org/t/p/w1920_and_h800_multi_faces/ss0Os3uWJfQAENILHZUdX8Tt1OC.jpg",
-  trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-  available: true,
-  downloadable: true,
-  subtitles: ["Français", "Anglais", "Espagnol"]
-};
+interface Film {
+  id: string;
+  titre: string;
+  description: string;
+  categorie: string;
+  image_url: string;
+}
 
 export default function MovieDetail() {
   const { id } = useParams();
-  const [isWatchlisted, setIsWatchlisted] = useState(false);
-  const [showPlayer, setShowPlayer] = useState(false);
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const [film, setFilm] = useState<Film | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleWatchlist = () => {
-    setIsWatchlisted(!isWatchlisted);
-    // TODO: Intégrer avec Supabase pour sauvegarder en base
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/auth");
+      return;
+    }
+    
+    if (id) {
+      fetchFilm(id);
+    }
+  }, [id, isAuthenticated, navigate]);
+
+  const fetchFilm = async (filmId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("films")
+        .select("*")
+        .eq("id", filmId)
+        .single();
+      
+      if (error) throw error;
+      setFilm(data);
+    } catch (error) {
+      console.error("Erreur lors du chargement du film:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDownload = () => {
-    // TODO: Intégrer le système de téléchargement légal
-    console.log("Téléchargement initié");
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="container mx-auto px-4 py-8 text-center">
+          Chargement du film...
+        </div>
+      </div>
+    );
+  }
 
-  if (showPlayer) {
-    return <VideoPlayer movieData={movieData} onClose={() => setShowPlayer(false)} />;
+  if (!film) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="container mx-auto px-4 py-8 text-center">
+          <h1 className="text-2xl font-bold mb-4">Film non trouvé</h1>
+          <Link to="/browse">
+            <Button>Retour au catalogue</Button>
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       <Navigation />
       
-      {/* Hero Section */}
-      <div 
-        className="relative h-screen flex items-end pb-20"
-        style={{
-          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.8)), url('${movieData.backdrop}')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl">
-            <h1 className="text-5xl md:text-7xl font-bold mb-4 text-foreground">
-              {movieData.title}
-            </h1>
-            <div className="flex items-center gap-4 mb-6">
-              <div className="flex items-center">
-                <Star className="h-5 w-5 text-yellow-400 mr-1 fill-current" />
-                <span className="font-semibold">{movieData.rating}</span>
+      <div className="pt-16">
+        {/* Hero Section with Video Player */}
+        <div className="relative">
+          <VideoPlayer 
+            movieData={{
+              title: film.titre,
+              trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+              subtitles: ["Français", "Anglais"]
+            }}
+            onClose={() => {}}
+          />
+        </div>
+
+        {/* Movie Info */}
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <div className="md:col-span-2 space-y-6">
+              {/* Title and Basic Info */}
+              <div>
+                <h1 className="text-4xl font-bold mb-4">{film.titre}</h1>
+                <div className="flex flex-wrap items-center gap-4 text-muted-foreground mb-4">
+                  <div className="flex items-center">
+                    <Star className="h-4 w-4 text-yellow-400 mr-1 fill-current" />
+                    8.5/10
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-1" />
+                    2024
+                  </div>
+                  <div className="flex items-center">
+                    <Clock className="h-4 w-4 mr-1" />
+                    120 min
+                  </div>
+                </div>
+                
+                {/* Genres */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  <Badge variant="secondary">{film.categorie}</Badge>
+                </div>
               </div>
-              <span>{movieData.duration}</span>
-              <span>{movieData.releaseDate.split('-')[0]}</span>
-              <div className="flex gap-2">
-                {movieData.genres.slice(0, 3).map((genre) => (
-                  <Badge key={genre} variant="secondary" className="text-xs">
-                    {genre}
-                  </Badge>
-                ))}
+
+              {/* Synopsis */}
+              <div>
+                <h2 className="text-2xl font-semibold mb-4">Synopsis</h2>
+                <p className="text-muted-foreground leading-relaxed">
+                  {film.description}
+                </p>
               </div>
+
+              {/* Comments Section */}
+              <CommentSection movieId={film.id} />
             </div>
-            
-            <p className="text-xl mb-8 text-muted-foreground max-w-2xl">
-              {movieData.synopsis}
-            </p>
-            
-            <div className="flex flex-wrap gap-4">
-              <Button 
-                variant="play" 
-                size="play" 
-                onClick={() => setShowPlayer(true)}
-                className="font-semibold"
-              >
-                <Play className="h-5 w-5 mr-2 fill-current" />
-                Regarder maintenant
-              </Button>
-              
-              <Button 
-                variant="transparent" 
-                size="play" 
-                onClick={handleDownload}
-                className="font-semibold"
-              >
-                <Download className="h-5 w-5 mr-2" />
-                Télécharger
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="play" 
-                onClick={handleWatchlist}
-                className={`font-semibold ${isWatchlisted ? 'text-primary' : ''}`}
-              >
-                {isWatchlisted ? <Heart className="h-5 w-5 mr-2 fill-current" /> : <Plus className="h-5 w-5 mr-2" />}
-                {isWatchlisted ? 'Dans ma liste' : 'Ajouter à ma liste'}
-              </Button>
-              
-              <Button variant="ghost" size="play" className="font-semibold">
-                <Share className="h-5 w-5 mr-2" />
-                Partager
-              </Button>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Movie Poster */}
+              <div className="aspect-[2/3] overflow-hidden rounded-lg">
+                <img
+                  src={film.image_url}
+                  alt={film.titre}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                <Button className="w-full" size="lg">
+                  <Play className="h-4 w-4 mr-2" />
+                  Regarder
+                </Button>
+                
+                <Button variant="outline" className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Ajouter à ma liste
+                </Button>
+                
+                <Button variant="outline" className="w-full">
+                  <Download className="h-4 w-4 mr-2" />
+                  Télécharger
+                </Button>
+                
+                <Button variant="outline" className="w-full">
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Partager
+                </Button>
+              </div>
+
+              {/* Rating System */}
+              <RatingSystem movieId={film.id} />
             </div>
           </div>
         </div>
       </div>
-
-      {/* Content Tabs */}
-      <div className="container mx-auto px-4 py-12">
-        <Tabs defaultValue="details" className="w-full">
-          <TabsList className="mb-8">
-            <TabsTrigger value="details">Détails</TabsTrigger>
-            <TabsTrigger value="cast">Distribution</TabsTrigger>
-            <TabsTrigger value="reviews">Avis</TabsTrigger>
-            <TabsTrigger value="similar">Similaires</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="details" className="space-y-8">
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="md:col-span-2">
-                <h3 className="text-2xl font-bold mb-4">Synopsis</h3>
-                <p className="text-muted-foreground leading-relaxed mb-6">
-                  {movieData.synopsis}
-                </p>
-                
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <Card>
-                    <CardContent className="p-4">
-                      <h4 className="font-semibold mb-2">Réalisateur</h4>
-                      <p className="text-muted-foreground">{movieData.director}</p>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardContent className="p-4">
-                      <h4 className="font-semibold mb-2">Pays</h4>
-                      <p className="text-muted-foreground">{movieData.country}</p>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardContent className="p-4">
-                      <h4 className="font-semibold mb-2">Langue</h4>
-                      <p className="text-muted-foreground">{movieData.language}</p>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardContent className="p-4">
-                      <h4 className="font-semibold mb-2">Sous-titres</h4>
-                      <p className="text-muted-foreground">{movieData.subtitles.join(", ")}</p>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-              
-              <div>
-                <img 
-                  src={movieData.poster} 
-                  alt={movieData.title}
-                  className="w-full rounded-lg shadow-card mb-4"
-                />
-                <RatingSystem movieId={movieData.id} initialRating={movieData.userRating} />
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="cast">
-            <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {movieData.cast.map((actor, index) => (
-                <Card key={index}>
-                  <CardContent className="p-4 text-center">
-                    <div className="w-16 h-16 bg-muted rounded-full mx-auto mb-3"></div>
-                    <h4 className="font-semibold">{actor}</h4>
-                    <p className="text-muted-foreground text-sm">Acteur</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="reviews">
-            <CommentSection movieId={movieData.id} />
-          </TabsContent>
-
-          <TabsContent value="similar">
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Contenu similaire à venir...</p>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-
+      
       <Footer />
     </div>
   );

@@ -8,6 +8,7 @@ import MovieDetail from "./pages/MovieDetail";
 import Profile from "./pages/Profile";
 import Browse from "./pages/Browse";
 import NotFound from "./pages/NotFound";
+import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -19,6 +20,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/auth" element={<Auth />} />
           <Route path="/movie/:id" element={<MovieDetail />} />
           <Route path="/browse" element={<Browse />} />
           <Route path="/profile" element={<Profile />} />

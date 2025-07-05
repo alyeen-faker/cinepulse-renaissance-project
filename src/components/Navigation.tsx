@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { Search, Menu, X } from "lucide-react";
+import { Search, Menu, X, LogOut } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { useAuth } from "@/hooks/useAuth";
+import { Link } from "react-router-dom";
 
 export const Navigation = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, signOut, isAuthenticated } = useAuth();
 
   const navItems = [
     { label: "Accueil", href: "/" },
@@ -71,10 +74,23 @@ export const Navigation = () => {
               )}
             </div>
 
-            {/* Login Button */}
-            <Button variant="play" size="sm" className="hidden sm:flex">
-              Connexion
-            </Button>
+            {/* Auth Buttons */}
+            {isAuthenticated ? (
+              <div className="hidden sm:flex items-center space-x-2">
+                <span className="text-sm text-muted-foreground">
+                  {user?.email}
+                </span>
+                <Button variant="ghost" size="sm" onClick={signOut}>
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Link to="/auth">
+                <Button variant="play" size="sm" className="hidden sm:flex">
+                  Connexion
+                </Button>
+              </Link>
+            )}
 
             {/* Mobile Menu Button */}
             <Button
@@ -106,9 +122,18 @@ export const Navigation = () => {
                   {item.label}
                 </a>
               ))}
-              <Button variant="play" size="sm" className="mt-4 self-start">
-                Connexion
-              </Button>
+              {isAuthenticated ? (
+                <Button variant="ghost" size="sm" className="mt-4 self-start" onClick={signOut}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Déconnexion
+                </Button>
+              ) : (
+                <Link to="/auth">
+                  <Button variant="play" size="sm" className="mt-4 self-start">
+                    Connexion
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         )}

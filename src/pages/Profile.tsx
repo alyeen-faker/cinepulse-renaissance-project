@@ -120,7 +120,7 @@ export default function Profile() {
                 {watchlistMovies.length > 0 ? (
                   <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {watchlistMovies.map((movie, index) => (
-                      <MovieCard key={index} {...movie} />
+                      <MovieCard key={index} {...movie} id={`watchlist-${index}`} />
                     ))}
                   </div>
                 ) : (

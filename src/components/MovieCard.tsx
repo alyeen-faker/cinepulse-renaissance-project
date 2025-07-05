@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 
 interface MovieCardProps {
+  id: string;
   title: string;
   image: string;
   rating: number;
@@ -15,6 +16,7 @@ interface MovieCardProps {
 }
 
 export const MovieCard = ({
+  id,
   title,
   image,
   rating,
@@ -25,7 +27,7 @@ export const MovieCard = ({
   size = "small"
 }: MovieCardProps) => {
   return (
-    <Link to="/movie/1" className="block">
+    <Link to={`/movie/${id}`} className="block">
       <Card 
         className={`group overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-2 bg-card border-border/50 ${
           size === "large" ? "h-auto" : "h-fit"
