@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, Heart, Download, Settings, Star, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,81 +7,133 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { MovieCard } from "@/components/MovieCard";
-
-// Mock data - à remplacer par des données réelles depuis Supabase
-const userData = {
-  name: "Marie Dubois",
-  email: "marie.dubois@email.com",
-  joinDate: "Mars 2024",
-  avatar: "",
-  subscription: "Premium",
-  watchedMinutes: 2850
-};
-
-const watchlistMovies = [
-  {
-    title: "Dune: Part Two",
-    image: "https://image.tmdb.org/t/p/w1920_and_h800_multi_faces/ss0Os3uWJfQAENILHZUdX8Tt1OC.jpg",
-    rating: 8.5,
-    type: "Film" as const,
-    releaseDate: "2024-03-01"
-  },
-  {
-    title: "The Bear",
-    image: "https://image.tmdb.org/t/p/w1920_and_h800_multi_faces/q3jHCb4dMfYF6ojikKuHd6LscxC.jpg",
-    rating: 9.1,
-    type: "Série" as const,
-    seasons: "3 saisons",
-    releaseDate: "2022-06-23"
-  }
-];
-
-const downloadedMovies = [
-  {
-    title: "Everything Everywhere All at Once",
-    image: "https://image.tmdb.org/t/p/w1920_and_h800_multi_faces/ss0Os3uWJfQAENILHZUdX8Tt1OC.jpg",
-    rating: 8.1,
-    type: "Film" as const,
-    releaseDate: "2022-03-24",
-    downloadDate: "2024-01-15",
-    size: "2.1 GB"
-  }
-];
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState("watchlist");
+  const [watchlistMovies, setWatchlistMovies] = useState<any[]>([]);
+  const [downloadedMovies, setDownloadedMovies] = useState<any[]>([]);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/auth");
+      return;
+    }
+
+    fetchUserData();
+  }, [isAuthenticated, navigate, user]);
+
+  const fetchUserData = async () => {
+    if (!user) return;
+
+    try {
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!profile) {
+        await supabase.from("user_profiles").insert({
+          id: user.id,
+          email: user.email,
+          nom: user.email?.split("@")[0] || "Utilisateur",
+        });
+      } else {
+        setUserProfile(profile);
+      }
+
+      const { data: watchlist } = await supabase
+        .from("user_watchlist")
+        .select(`
+          *,
+          films (*)
+        `)
+        .eq("user_id", user.id);
+
+      const watchlistFilms = (watchlist || []).map((item: any) => ({
+        id: item.films.id,
+        title: item.films.titre,
+        image: item.films.image_url,
+        rating: item.films.note_moyenne || 0,
+        type: item.films.type,
+        releaseDate: item.films.date_sortie,
+      }));
+      setWatchlistMovies(watchlistFilms);
+
+      const { data: downloads } = await supabase
+        .from("user_downloads")
+        .select(`
+          *,
+          films (*)
+        `)
+        .eq("user_id", user.id);
+
+      const downloadFilms = (downloads || []).map((item: any) => ({
+        id: item.films.id,
+        title: item.films.titre,
+        image: item.films.image_url,
+        rating: item.films.note_moyenne || 0,
+        type: item.films.type,
+        releaseDate: item.films.date_sortie,
+        downloadDate: new Date(item.download_date).toLocaleDateString(),
+        size: item.file_size || "2.1 GB",
+      }));
+      setDownloadedMovies(downloadFilms);
+    } catch (error) {
+      console.error("Erreur lors du chargement des données:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="container mx-auto px-4 py-24 text-center">
+          Chargement du profil...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
+
       <div className="container mx-auto px-4 py-24">
-        {/* Profile Header */}
         <Card className="mb-8">
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row items-center gap-6">
               <Avatar className="w-24 h-24">
-                <AvatarImage src={userData.avatar} />
+                <AvatarImage src={userProfile?.avatar_url} />
                 <AvatarFallback className="text-2xl">
                   <User className="h-12 w-12" />
                 </AvatarFallback>
               </Avatar>
-              
+
               <div className="flex-1 text-center md:text-left">
-                <h1 className="text-3xl font-bold mb-2">{userData.name}</h1>
-                <p className="text-muted-foreground mb-4">{userData.email}</p>
+                <h1 className="text-3xl font-bold mb-2">{userProfile?.nom || user?.email}</h1>
+                <p className="text-muted-foreground mb-4">{user?.email}</p>
                 <div className="flex flex-wrap gap-4 justify-center md:justify-start">
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-primary" />
-                    <span className="text-sm">{userData.watchedMinutes} min regardées</span>
+                    <span className="text-sm">{userProfile?.minutes_regardees || 0} min regardées</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Star className="h-4 w-4 text-yellow-400" />
-                    <span className="text-sm">Abonnement {userData.subscription}</span>
+                    <span className="text-sm">Abonnement {userProfile?.abonnement || "Premium"}</span>
                   </div>
                 </div>
               </div>
-              
+
               <Button variant="outline" className="gap-2">
                 <Settings className="h-4 w-4" />
                 Paramètres
@@ -90,7 +142,6 @@ export default function Profile() {
           </CardContent>
         </Card>
 
-        {/* Profile Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-8">
             <TabsTrigger value="watchlist" className="gap-2">
@@ -119,8 +170,8 @@ export default function Profile() {
               <CardContent>
                 {watchlistMovies.length > 0 ? (
                   <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {watchlistMovies.map((movie, index) => (
-                      <MovieCard key={index} {...movie} id={`watchlist-${index}`} />
+                    {watchlistMovies.map((movie) => (
+                      <MovieCard key={movie.id} {...movie} />
                     ))}
                   </div>
                 ) : (
@@ -142,10 +193,10 @@ export default function Profile() {
               <CardContent>
                 {downloadedMovies.length > 0 ? (
                   <div className="space-y-4">
-                    {downloadedMovies.map((movie, index) => (
-                      <div key={index} className="flex items-center gap-4 p-4 border rounded-lg">
-                        <img 
-                          src={movie.image} 
+                    {downloadedMovies.map((movie) => (
+                      <div key={movie.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                        <img
+                          src={movie.image}
                           alt={movie.title}
                           className="w-16 h-24 object-cover rounded"
                         />

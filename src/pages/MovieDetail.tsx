@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Star, Calendar, Clock, Download, Plus, Play, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/components/ui/sonner";
 
 interface Film {
   id: string;
@@ -17,14 +18,20 @@ interface Film {
   description: string;
   categorie: string;
   image_url: string;
+  video_url: string;
+  duree: number;
+  annee: number;
+  note_moyenne: number;
+  type: string;
 }
 
 export default function MovieDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [film, setFilm] = useState<Film | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isInWatchlist, setIsInWatchlist] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -44,13 +51,82 @@ export default function MovieDetail() {
         .select("*")
         .eq("id", filmId)
         .single();
-      
+
       if (error) throw error;
       setFilm(data);
+
+      if (user) {
+        const { data: watchlist } = await supabase
+          .from("user_watchlist")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("film_id", filmId)
+          .maybeSingle();
+
+        setIsInWatchlist(!!watchlist);
+      }
     } catch (error) {
       console.error("Erreur lors du chargement du film:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleWatchlist = async () => {
+    if (!user || !film) {
+      toast.error("Vous devez être connecté");
+      return;
+    }
+
+    try {
+      if (isInWatchlist) {
+        const { error } = await supabase
+          .from("user_watchlist")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("film_id", film.id);
+
+        if (error) throw error;
+        setIsInWatchlist(false);
+        toast.success("Retiré de votre liste");
+      } else {
+        const { error } = await supabase
+          .from("user_watchlist")
+          .insert({
+            user_id: user.id,
+            film_id: film.id,
+          });
+
+        if (error) throw error;
+        setIsInWatchlist(true);
+        toast.success("Ajouté à votre liste");
+      }
+    } catch (error) {
+      console.error("Erreur:", error);
+      toast.error("Une erreur est survenue");
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!user || !film) {
+      toast.error("Vous devez être connecté");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("user_downloads")
+        .insert({
+          user_id: user.id,
+          film_id: film.id,
+          file_size: "2.1 GB",
+        });
+
+      if (error && error.code !== "23505") throw error;
+      toast.success("Téléchargement ajouté à votre liste");
+    } catch (error) {
+      console.error("Erreur:", error);
+      toast.error("Une erreur est survenue");
     }
   };
 
@@ -107,16 +183,18 @@ export default function MovieDetail() {
                 <div className="flex flex-wrap items-center gap-4 text-muted-foreground mb-4">
                   <div className="flex items-center">
                     <Star className="h-4 w-4 text-yellow-400 mr-1 fill-current" />
-                    8.5/10
+                    {film.note_moyenne || 0}/10
                   </div>
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-1" />
-                    2024
+                    {film.annee || 2024}
                   </div>
-                  <div className="flex items-center">
-                    <Clock className="h-4 w-4 mr-1" />
-                    120 min
-                  </div>
+                  {film.duree && (
+                    <div className="flex items-center">
+                      <Clock className="h-4 w-4 mr-1" />
+                      {film.duree} min
+                    </div>
+                  )}
                 </div>
                 
                 {/* Genres */}
@@ -155,12 +233,12 @@ export default function MovieDetail() {
                   Regarder
                 </Button>
                 
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" onClick={toggleWatchlist}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Ajouter à ma liste
+                  {isInWatchlist ? "Retirer de ma liste" : "Ajouter à ma liste"}
                 </Button>
-                
-                <Button variant="outline" className="w-full">
+
+                <Button variant="outline" className="w-full" onClick={handleDownload}>
                   <Download className="h-4 w-4 mr-2" />
                   Télécharger
                 </Button>
